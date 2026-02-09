@@ -1,0 +1,10 @@
+name: 'Migration source_module test'
+type: module
+description: 'Add migration that define source_module.'
+package: Testing
+# version: VERSION
+
+# Information added by Drupal.org packaging script on 2026-02-05
+version: '11.3.3'
+project: 'drupal'
+datestamp: 1770281499

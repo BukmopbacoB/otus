@@ -1,0 +1,10 @@
+# cspell:ignore nyan
+type: module
+name: Nyan cat
+# version: VERSION
+package: Core
+
+# Information added by Drupal.org packaging script on 2026-02-05
+version: '11.3.3'
+project: 'drupal'
+datestamp: 1770281499

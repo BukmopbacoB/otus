@@ -1,0 +1,14 @@
+name: 'Test User Config'
+type: module
+description: 'Provides a test user config.'
+package: Testing
+# version: VERSION
+dependencies:
+  - drupal:user
+  - drupal:field
+  - drupal:image
+
+# Information added by Drupal.org packaging script on 2026-02-05
+version: '11.3.3'
+project: 'drupal'
+datestamp: 1770281499

@@ -1,0 +1,13 @@
+name: 'Container rebuild required false'
+type: module
+description: 'Support module for ModuleInstaller testing.'
+container_rebuild_required: false
+dependencies:
+  - drupal:container_rebuild_required_true
+package: Testing
+# version: VERSION
+
+# Information added by Drupal.org packaging script on 2026-02-05
+version: '11.3.3'
+project: 'drupal'
+datestamp: 1770281499
