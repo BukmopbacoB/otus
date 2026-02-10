@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   nginx:
     image: nginx:1.25-alpine
@@ -7,7 +5,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./src:/var/www/html
     depends_on:
       - php
@@ -18,6 +16,7 @@ services:
     build:
       context: ./php
     container_name: cms-php
+    # БЕЗ user:, всё под root внутри контейнера
     volumes:
       - ./src:/var/www/html
     depends_on:

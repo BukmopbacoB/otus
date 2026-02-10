@@ -286,7 +286,7 @@ $databases = [];
  *   $settings['hash_salt'] = file_get_contents('/home/example/salt.txt');
  * @endcode
  */
-$settings['hash_salt'] = 'raYr3irtnCwI2gsTOOpokNFa8KA6v3OWRvKP4w2jIrEqut5qyYy3Z-eXcjoNlgjJQ9VRF9ZQcQ';
+$settings['hash_salt'] = 'ZDCJdzJYw2Pc0J18ofR3pBV2oP7oBSc_RitRwymyVfo7vjLOtWhxaXNiqAA2QiBRg1bci_7myw';
 
 /**
  * Deployment identifier.
@@ -870,4 +870,4 @@ $databases['default']['default'] = array (
   'namespace' => 'Drupal\\pgsql\\Driver\\Database\\pgsql',
   'autoload' => 'core/modules/pgsql/src/Driver/Database/pgsql/',
 );
-$settings['config_sync_directory'] = 'sites/default/files/config_oMfFLd12XQYYd5qPpJCh8JWEy7OB35amDLs2RG4HTYobdqeaUSjRRFeiK-L12oUSBTbz4Et2-Q/sync';
+$settings['config_sync_directory'] = 'sites/default/files/config_z3wNCm8d3zU9FloTZnXmiv-o060FqD3SIafMWH474HJ-ujK3iXGrtgvGYsHUr82oXhm4r2HPKw/sync';
