@@ -107,7 +107,25 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
+    depends_on:
+      - node-exporter
+      - nginx-exporter
+      - postgres-exporter
+      - blackbox-exporter
+      - victoriametrics
     restart: unless-stopped
+    networks:
+      - cms-net
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: victoriametrics
+    command:
+      - '-retentionPeriod=2w'
+    ports:
+      - "8428:8428"
+    volumes:
+      - vmdata:/var/lib/victoria-metrics
     networks:
       - cms-net
 
@@ -116,5 +134,5 @@ networks:
 
 volumes:
   pgdata:
-  drupal-sites:
   prometheus_data:
+  vmdata:

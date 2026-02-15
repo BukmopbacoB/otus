@@ -39,7 +39,7 @@ docker-compose exec php ls -la /var/www/html/sites/default/
 <!-- Должны быть default.settings.php, settings.php, files/ с владельцем www-data. -->
 
 # 4. Установка Drupal
-## Открой в браузере:
+## Открыть в браузере:
 http://localhost:8080/core/install.php
 
 <!-- Все requirements должны быть зелёными. -->
@@ -51,7 +51,7 @@ DB:
 Пользователь: drupal
 Пароль: drupal.
 
-Проходишь установку — сайт готов.
+Пройти установку — сайт готов.
 
 # 5. Что будет дальше при down / up -d
 <!-- Код Drupal в ./src — не трогаем. -->
@@ -68,10 +68,10 @@ docker-compose up -d
 <!-- Drupal поднимается сразу, без повторных прав/копирования файлов. -->
 
 <!-- Сделаем простой init-скрипт, который можно запускать вручную, без изменения ENTRYPOINT (чтобы контейнер не падал). 
-Этого достаточно, чтобы после docker-compose down -v ты одной командой всё «починил». -->
+Этого достаточно, чтобы после docker-compose down -v одной командой всё «починить». -->
 
 # 1. Добавляем init.sh в образ
-## Создай файл php/init.sh:
+## Создать файл php/init.sh:
 ```bash
 mkdir -p php
 
@@ -109,7 +109,7 @@ EOF
 
 chmod +x php/init.sh
 ```
-## Обнови php/Dockerfile, добавив копирование скрипта (в конец, перед WORKDIR):
+## Обновить php/Dockerfile, добавив копирование скрипта (в конец, перед WORKDIR):
 ```text
 FROM php:8.3-fpm-alpine
 
@@ -131,7 +131,7 @@ WORKDIR /var/www/html
 ```
 <!-- ENTRYPOINT не трогаем, php-fpm остаётся как есть — контейнер будет стабильно жить. -->
 
-## Пересобери:
+## Пересобрать:
 ```bash
 docker-compose build --no-cache php
 docker-compose up -d
@@ -142,7 +142,7 @@ docker-compose up -d
 docker-compose down -v
 docker-compose up -d
 ```
-## Если Drupal снова жалуется на sites/default/files или settings.php, просто выполни:
+## Если Drupal снова жалуется на sites/default/files или settings.php, просто выполнить:
 ```bash
 docker-compose exec -u root php drupal-init
 ```
@@ -154,7 +154,7 @@ docker-compose exec -u root php drupal-init
 
 выставит права www-data и нужные chmod. -->
 
-## Можно и сейчас один раз прогнать (не повредит):
+## Можно прогнать (не повредит):
 ```bash
 docker-compose exec -u root php drupal-init
 ```
