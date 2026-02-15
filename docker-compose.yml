@@ -36,8 +36,85 @@ services:
     networks:
       - cms-net
 
+  # 2.1 node_exporter (метрики хоста)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - cms-net
+
+  # 2.2 nginx exporter
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-exporter
+    depends_on:
+      - nginx
+    command:
+      - '--nginx.scrape-uri=http://cms-nginx:80/stub_status'
+    ports:
+      - "9113:9113"
+    networks:
+      - cms-net
+
+  # 2.3 postgres exporter
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    environment:
+      DATA_SOURCE_URI: "cms-postgres:5432/drupal?sslmode=disable"
+      DATA_SOURCE_USER: "drupal"
+      DATA_SOURCE_PASS: "drupal"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - db
+    networks:
+      - cms-net
+
+  # 2.4 blackbox exporter
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
+    ports:
+      - "9115:9115"
+    networks:
+      - cms-net
+
+# 3. Prometheus для сбора метрик
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - cms-net
+
 networks:
   cms-net:
 
 volumes:
   pgdata:
+  drupal-sites:
+  prometheus_data:
