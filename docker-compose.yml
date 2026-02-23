@@ -28,9 +28,9 @@ services:
     image: postgres:16
     container_name: cms-postgres
     environment:
-      POSTGRES_DB: drupal
-      POSTGRES_USER: drupal
-      POSTGRES_PASSWORD: drupal
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -74,7 +74,7 @@ services:
     environment:
       DATA_SOURCE_URI: "cms-postgres:5432/drupal?sslmode=disable"
       DATA_SOURCE_USER: "drupal"
-      DATA_SOURCE_PASS: "drupal"
+      DATA_SOURCE_PASS: "${POSTGRES_PASSWORD}"
     ports:
       - "9187:9187"
     depends_on:
@@ -100,6 +100,7 @@ services:
     volumes:
       - ./prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
+      - ./prometheus/rules:/etc/prometheus/rules:ro
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -117,6 +118,7 @@ services:
     networks:
       - cms-net
 
+# 4. VictoriaMetrics хранилище метрик для Prometheus
   victoriametrics:
     image: victoriametrics/victoria-metrics:latest
     container_name: victoriametrics
@@ -126,6 +128,50 @@ services:
       - "8428:8428"
     volumes:
       - vmdata:/var/lib/victoria-metrics
+    networks:
+      - cms-net
+
+# 5. Alertmanager - работа с метриками (PromQL), написание алертов и их ротация
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
+    # command:
+    #   - '--config.file=/etc/alertmanager/alertmanager.yml'
+    env_file:
+      - .env
+
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        awk -v tok="$TELEGRAM_TOKEN" \
+            -v cid="$TELEGRAM_CHAT_ID" \
+            -v ato="$ALERT_ADDRESS_TO" \
+            -v agu="$ALERT_GMAIL_USER" \
+            -v agp="$ALERT_GMAIL_APP_PASS" \
+            '{
+              gsub(/\$\{TELEGRAM_TOKEN\}/, tok);
+              gsub(/\$\{TELEGRAM_CHAT_ID\}/, cid);
+              gsub(/\$\{ALERT_ADDRESS_TO\}/, ato);
+              gsub(/\$\{ALERT_GMAIL_USER\}/, agu);
+              gsub(/\$\{ALERT_GMAIL_APP_PASS\}/, agp);
+              print
+            }' /etc/alertmanager/alertmanager.yml.tmpl > /tmp/alertmanager.yml &&
+        alertmanager --config.file=/tmp/alertmanager.yml
+    networks:
+      - cms-net
+
+  alertmanager-telegram:
+    image: janwh/alertmanager-telegram:latest
+    container_name: alertmanager-telegram
+    env_file:
+      - .env
+    ports:
+      - "8081:8080"
     networks:
       - cms-net
 

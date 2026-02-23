@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
 
 rule_files:
-  - "rules.yml"
+  - "rules/alerts.yml"
 
 scrape_configs:
   # Метрики самого Prometheus
@@ -67,9 +67,18 @@ scrape_configs:
     static_configs:
       - targets: ['victoriametrics:8428']
 
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+
 # remote_write в VictoriaMetrics + лейбл site=prod
 remote_write:
   - url: http://victoriametrics:8428/api/v1/write
     write_relabel_configs:
       - target_label: site
         replacement: "prod"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']

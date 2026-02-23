@@ -1,0 +1,67 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'instance']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 2h
+  receiver: 'default'
+
+  routes:
+    # SYSTEM → Telegram
+    - match:
+        severity: 'system'
+      receiver: 'telegram-system'
+
+    # CRITICAL → Telegram
+    - match:
+        severity: 'critical'
+      receiver: 'telegram-critical'
+
+    # WARNING → email (или другой канал)
+    - match:
+        severity: 'warning'
+      receiver: 'email-warning'
+
+receivers:
+  - name: 'default'
+    # можно оставить пустым или логгировать куда-нибудь
+
+  - name: 'telegram-system'
+    telegram_configs:
+      - bot_token: '${TELEGRAM_TOKEN}'
+        chat_id: ${TELEGRAM_CHAT_ID}
+        parse_mode: 'HTML'
+        message: |
+          {{ if .Alerts.Firing }}🔔 <b>System Алерт</b>{{ else }}✅ <b>System Алерт погашен</b>{{ end }}
+          {{ range .Alerts }}
+          <b>Имя:</b> {{ .Labels.alertname }}
+          {{- if .Annotations.summary }}
+          <b>Тема:</b> {{ .Annotations.summary }}
+          {{- end }}
+          {{- if .Annotations.description }}
+          <b>Описание:</b> {{ .Annotations.description }}
+          {{- end }}
+          {{- if .Labels.severity }}
+          <b>Уровень:</b> {{ .Labels.severity }}
+          {{- end }}
+          {{- if .Labels.instance }}
+          <b>Инстанс:</b> {{ .Labels.instance }}
+          {{- end }}
+          {{- end }}
+
+  - name: 'telegram-critical'
+    webhook_configs:
+      - url: 'http://alertmanager-telegram:8080/alerts'
+        send_resolved: true
+
+  - name: 'email-warning'
+    email_configs:
+      - to: '${ALERT_ADDRESS_TO}'
+        from: '${ALERT_GMAIL_USER}'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: '${ALERT_GMAIL_USER}'
+        auth_password: '${ALERT_GMAIL_APP_PASS}' 
+        require_tls: true
+        send_resolved: true
