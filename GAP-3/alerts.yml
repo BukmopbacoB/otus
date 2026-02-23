@@ -1,0 +1,25 @@
+groups:
+  - name: drupal-stack-alerts
+    rules:
+      # WARNING: высокая нагрузка CPU на хосте
+      - alert: HighCpuUsageWarning
+        expr: avg_over_time(node_load1[5m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: drupal-stack
+        annotations:
+          summary: "Высокая нагрузка CPU"
+          description: "Средняя нагрузка за 5 минут > 2 на {{ $labels.instance }}"
+
+      # CRITICAL: Drupal недоступен по HTTP (через blackbox)
+      - alert: DrupalDownCritical
+        expr: probe_success{job="blackbox_http"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: drupal-stack
+        annotations:
+          summary: "Drupal недоступен"
+          description: "Сайт Drupal не отвечает по HTTP на {{ $labels.instance }}"
+  
