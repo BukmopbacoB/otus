@@ -40,17 +40,21 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
+    pid: host
+    cap_add:
+      - SYS_PTRACE
     ports:
       - "9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+      - /run/udev/data:/run/udev/data:ro
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--no-collector.filesystem'
     networks:
       - cms-net
 
@@ -175,6 +179,18 @@ services:
     networks:
       - cms-net
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - cms-net
+
 networks:
   cms-net:
 
@@ -182,3 +198,4 @@ volumes:
   pgdata:
   prometheus_data:
   vmdata:
+  grafana_data:
