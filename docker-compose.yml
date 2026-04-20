@@ -16,7 +16,6 @@ services:
     build:
       context: ./php
     container_name: cms-php
-    # БЕЗ user:, всё под root внутри контейнера
     volumes:
       - ./src:/var/www/html
     depends_on:
@@ -41,74 +40,73 @@ services:
       - cms-net
 
   #################################################
-  # Zabbix stack
+  # TICK-1 stack
   #################################################
 
-  zabbix-db:
-    image: postgres:16
-    container_name: zabbix-postgres
-    environment:
-      POSTGRES_DB: zabbix
-      POSTGRES_USER: zabbix
-      POSTGRES_PASSWORD: zabbix_pwd
+  influxdb:
+    image: influxdb:1.8
+    container_name: tick-influxdb
+    ports:
+      - "8086:8086"
     volumes:
-      - zbx_pgdata:/var/lib/postgresql/data
+      - ./TICK-1/influxdb:/var/lib/influxdb
     networks:
       - cms-net
 
-  zabbix-server:
-    image: zabbix/zabbix-server-pgsql:alpine-7.0-latest
-    container_name: zabbix-server
+  chronograf:
+    image: chronograf:1.10
+    container_name: tick-chronograf
+    ports:
+      - "8888:8888"
     environment:
-      DB_SERVER_HOST: zabbix-postgres
-      POSTGRES_USER: zabbix
-      POSTGRES_PASSWORD: zabbix_pwd
-      POSTGRES_DB: zabbix
-      ZBX_TIMEOUT: 10
-      ZBX_ALERTSCRIPTSPATH: /alertscripts
-      BOT_TOKEN: ${TELEGRAM_TOKEN}
-    volumes:
-      - ./zabbix/alertscripts:/alertscripts
+      INFLUXDB_URL: http://influxdb:8086
+      KAPACITOR_URL: http://kapacitor:9092
     depends_on:
-      - zabbix-db
-    ports:
-      - "10051:10051"
-    networks:
-      - cms-net
-
-  zabbix-web:
-    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
-    container_name: zabbix-web
-    environment:
-      DB_SERVER_HOST: zabbix-postgres
-      POSTGRES_USER: zabbix
-      POSTGRES_PASSWORD: zabbix_pwd
-      POSTGRES_DB: zabbix
-      ZBX_SERVER_HOST: zabbix-server
-      PHP_TZ: Europe/Moscow
-    depends_on:
-      - zabbix-db
-      - zabbix-server
-    ports:
-      - "8082:8080"
-    networks:
-      - cms-net
-
-  zabbix-agent:
-    image: zabbix/zabbix-agent2:alpine-7.0-latest
-    container_name: zabbix-agent
-    hostname: docker-host
-    environment:
-      ZBX_SERVER_HOST: zabbix-server
-      ZBX_SERVER_PORT: 10051
-      ZBX_HOSTNAME: docker-host
-      ZBX_UNSAFEUSERPARAMETERS: 1
+      - influxdb
+      - kapacitor
     volumes:
-      - ./zabbix/postgresql.conf:/etc/zabbix/zabbix_agentd.d/postgresql.conf:ro
-      - ./zabbix/otus.conf:/etc/zabbix/zabbix_agentd.d/otus.conf:ro
-      - ./zabbix/scripts:/scripts:ro
+      - ./TICK-1/chronograf:/var/lib/chronograf
+    networks:
+      - cms-net
+
+  kapacitor:
+    image: kapacitor:1.6
+    container_name: tick-kapacitor
     ports:
-      - "10050:10050"
+      - "9092:9092"
+    environment:
+      KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
+      KAPACITOR_INFLUXDB_0_ENABLED: "true"
+      KAPACITOR_INFLUXDB_0_DEFAULT: "true"
+      KAPACITOR_INFLUXDB_0_NAME: influxdb
+    depends_on:
+      - influxdb
+    volumes:
+      - ./TICK-1/kapacitor:/var/lib/kapacitor
+      - ./TICK-1/kapacitor/kapacitor.conf:/etc/kapacitor/kapacitor.conf:ro
+      - ./TICK-1/kapacitor/tasks:/etc/kapacitor/load:ro
+    networks:
+      - cms-net
+
+  telegraf:
+    image: telegraf:1.30
+    container_name: tick-telegraf
+    depends_on:
+      - influxdb
+      - nginx
+      - php
+      - db
+    user: root
+    volumes:
+      - ./TICK-1/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/hostfs:ro
+    environment:
+      HOST_PROC: /host/proc
+      HOST_SYS: /host/sys
+      HOST_ETC: /hostfs/etc
     networks:
       - cms-net
 
@@ -117,4 +115,3 @@ networks:
 
 volumes:
   pgdata:
-  zbx_pgdata:
