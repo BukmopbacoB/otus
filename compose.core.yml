@@ -1,0 +1,62 @@
+name: core
+
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: cms-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./src:/var/www/html
+    depends_on:
+      - php
+    networks:
+      cms-shared-net:
+        aliases:
+          - nginx
+          - cms-nginx
+
+  php:
+    build:
+      context: ./php
+    container_name: cms-php
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - db
+    networks:
+      cms-shared-net:
+        aliases:
+          - php
+          - cms-php
+
+  db:
+    image: postgres:16
+    container_name: cms-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: >
+      postgres
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      cms-shared-net:
+        aliases:
+          - db
+          - postgres
+          - cms-postgres
+
+networks:
+  cms-shared-net:
+    name: cms-shared-net
+
+volumes:
+  pgdata:
+    external: true
+    name: otus_pgdata
