@@ -151,3 +151,59 @@
     - Network In/Out
   - В сводном дашборде infra-overview на панели CPU usage настроена ссылка Data link ("Подробнее") с URL вида /d/<UID>/infra-detail?var-instance=${__field.labels.instance}.
   - При клике на любую точку графика CPU в infra-overview открывается дашборд infra-detail с автоматически подставленным значением instance — отображается детальная информация именно по выбранному узлу.
+
+
+
+
+# Отчёт о выполнении ДЗ TICK-1: Установка и настройка TICK стека
+
+## Установить и настроить Telegraf, Influxdb, Chronograf, Kapacitor
+
+Этот проект разворачивает CMS на `nginx + php-fpm + PostgreSQL` и стек мониторинга `Telegraf + InfluxDB + Chronograf + Kapacitor`.
+
+## Состав
+
+- `nginx` — фронт для CMS;
+- `php` — обработка PHP;
+- `db` — PostgreSQL 16;
+- `telegraf` — сбор системных и прикладных метрик;
+- `influxdb` — хранение метрик;
+- `chronograf` — дашборды и управление алертами;
+- `kapacitor` — алертинг.
+
+## Запуск
+
+```bash
+docker compose up -d
+```
+
+## Доступ
+
+- CMS: `http://localhost:8080`
+- Chronograf: `http://localhost:8888`
+- InfluxDB: `http://localhost:8086`
+- Kapacitor: `http://localhost:9092`
+
+## Что мониторится
+
+- хост: CPU, RAM, swap, disk, network, processes;
+- Docker: CPU, memory, I/O контейнеров;
+- nginx: stub_status;
+- php-fpm: status endpoint;
+- PostgreSQL: статистика `pg_stat_database` и `pg_stat_bgwriter`;
+- доступность CMS: HTTP/TCP checks.
+
+## Алерты
+
+- CPU > 85%;
+- RAM > 90%;
+- Disk > 85%;
+- пропали метрики nginx;
+- недоступность CMS или HTTP 5xx.
+
+## Структура
+
+- `docker-compose.yml`
+- `TICK-1/` — все конфиги мониторинга
+- `nginx/conf.d/default.conf` — статус nginx и проксирование в php-fpm
+- `postgres/init/01-create-telegraf-user.sql` — пользователь мониторинга

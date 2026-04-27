@@ -36,20 +36,23 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
     networks:
       - cms-net
 
   #################################################
   # TICK-1 stack
   #################################################
-
   influxdb:
     image: influxdb:1.8
     container_name: tick-influxdb
     ports:
       - "8086:8086"
     volumes:
-      - ./TICK-1/influxdb:/var/lib/influxdb
+      - ./tick-1/influxdb:/var/lib/influxdb
+      - ./tick-1/influxdb/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      INFLUXDB_DB: telegraf
     networks:
       - cms-net
 
@@ -61,11 +64,13 @@ services:
     environment:
       INFLUXDB_URL: http://influxdb:8086
       KAPACITOR_URL: http://kapacitor:9092
+      RESOURCES_PATH: /var/lib/chronograf/resources
     depends_on:
       - influxdb
       - kapacitor
     volumes:
-      - ./TICK-1/chronograf:/var/lib/chronograf
+      - ./tick-1/chronograf:/var/lib/chronograf
+      - ./tick-1/chronograf/resources:/var/lib/chronograf/resources
     networks:
       - cms-net
 
@@ -75,38 +80,38 @@ services:
     ports:
       - "9092:9092"
     environment:
-      KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
       KAPACITOR_INFLUXDB_0_ENABLED: "true"
       KAPACITOR_INFLUXDB_0_DEFAULT: "true"
       KAPACITOR_INFLUXDB_0_NAME: influxdb
+      KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
     depends_on:
       - influxdb
     volumes:
-      - ./TICK-1/kapacitor:/var/lib/kapacitor
-      - ./TICK-1/kapacitor/kapacitor.conf:/etc/kapacitor/kapacitor.conf:ro
-      - ./TICK-1/kapacitor/tasks:/etc/kapacitor/load:ro
+      - ./tick-1/kapacitor:/var/lib/kapacitor
+      - ./tick-1/kapacitor/kapacitor.conf:/etc/kapacitor/kapacitor.conf:ro
+      - ./tick-1/kapacitor/tasks:/etc/kapacitor/load:ro
     networks:
       - cms-net
 
   telegraf:
     image: telegraf:1.30
     container_name: tick-telegraf
+    user: root
     depends_on:
       - influxdb
       - nginx
       - php
       - db
-    user: root
-    volumes:
-      - ./TICK-1/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/hostfs:ro
     environment:
       HOST_PROC: /host/proc
       HOST_SYS: /host/sys
       HOST_ETC: /hostfs/etc
+    volumes:
+      - ./tick-1/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/hostfs:ro
     networks:
       - cms-net
 
