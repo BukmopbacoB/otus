@@ -1,0 +1,77 @@
+name: zabbix
+
+services:
+  zabbix-db:
+    image: postgres:16
+    container_name: zabbix-postgres
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_pwd
+    volumes:
+      - zbx_pgdata:/var/lib/postgresql/data
+    networks:
+      - cms-shared-net
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0-latest
+    container_name: zabbix-server
+    environment:
+      DB_SERVER_HOST: zabbix-postgres
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_pwd
+      POSTGRES_DB: zabbix
+      ZBX_TIMEOUT: 10
+      ZBX_ALERTSCRIPTSPATH: /alertscripts
+      BOT_TOKEN: ${TELEGRAM_TOKEN}
+    volumes:
+      - ./zabbix/alertscripts:/alertscripts
+    depends_on:
+      - zabbix-db
+    ports:
+      - "10051:10051"
+    networks:
+      - cms-shared-net
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
+    container_name: zabbix-web
+    environment:
+      DB_SERVER_HOST: zabbix-postgres
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix_pwd
+      POSTGRES_DB: zabbix
+      ZBX_SERVER_HOST: zabbix-server
+      PHP_TZ: Europe/Moscow
+    depends_on:
+      - zabbix-db
+      - zabbix-server
+    ports:
+      - "8082:8080"
+    networks:
+      - cms-shared-net
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    container_name: zabbix-agent
+    hostname: docker-host
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_SERVER_PORT: 10051
+      ZBX_HOSTNAME: docker-host
+      ZBX_UNSAFEUSERPARAMETERS: 1
+    volumes:
+      - ./zabbix/postgresql.conf:/etc/zabbix/zabbix_agentd.d/postgresql.conf:ro
+      - ./zabbix/otus.conf:/etc/zabbix/zabbix_agentd.d/otus.conf:ro
+      - ./zabbix/scripts:/scripts:ro
+    ports:
+      - "10050:10050"
+    networks:
+      - cms-shared-net
+
+networks:
+  cms-shared-net:
+    external: true
+
+volumes:
+  zbx_pgdata:

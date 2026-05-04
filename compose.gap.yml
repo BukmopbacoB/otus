@@ -1,0 +1,152 @@
+name: gap
+
+services:
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: gap-node-exporter
+    pid: host
+    cap_add:
+      - SYS_PTRACE
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /run/udev/data:/run/udev/data:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--no-collector.filesystem'
+    networks:
+      - cms-shared-net
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: gap-nginx-exporter
+    command:
+      - '--nginx.scrape-uri=http://nginx/nginx_status'
+    ports:
+      - "9113:9113"
+    networks:
+      - cms-shared-net
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:latest
+    container_name: gap-postgres-exporter
+    environment:
+      DATA_SOURCE_URI: 'db:5432/${POSTGRES_DB}?sslmode=disable'
+      DATA_SOURCE_USER: '${POSTGRES_USER}'
+      DATA_SOURCE_PASS: '${POSTGRES_PASSWORD}'
+    ports:
+      - "9187:9187"
+    networks:
+      - cms-shared-net
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: gap-blackbox-exporter
+    ports:
+      - "9115:9115"
+    networks:
+      - cms-shared-net
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: gap-victoriametrics
+    command:
+      - '-retentionPeriod=2w'
+    ports:
+      - "8428:8428"
+    volumes:
+      - vmdata:/var/lib/victoria-metrics
+    networks:
+      - cms-shared-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gap-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - node-exporter
+      - nginx-exporter
+      - postgres-exporter
+      - blackbox-exporter
+      - victoriametrics
+    restart: unless-stopped
+    networks:
+      - cms-shared-net
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: gap-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml.tmpl:/etc/alertmanager/alertmanager.yml.tmpl:ro
+    env_file:
+      - .env
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        awk -v tok="$$TELEGRAM_TOKEN" \
+            -v cid="$$TELEGRAM_CHAT_ID" \
+            -v ato="$$ALERT_ADDRESS_TO" \
+            -v agu="$$ALERT_GMAIL_USER" \
+            -v agp="$$ALERT_GMAIL_APP_PASS" \
+            '{
+              gsub(/\$\{TELEGRAM_TOKEN\}/, tok);
+              gsub(/\$\{TELEGRAM_CHAT_ID\}/, cid);
+              gsub(/\$\{ALERT_ADDRESS_TO\}/, ato);
+              gsub(/\$\{ALERT_GMAIL_USER\}/, agu);
+              gsub(/\$\{ALERT_GMAIL_APP_PASS\}/, agp);
+              print
+            }' /etc/alertmanager/alertmanager.yml.tmpl > /tmp/alertmanager.yml &&
+        alertmanager --config.file=/tmp/alertmanager.yml
+    networks:
+      - cms-shared-net
+
+  alertmanager-telegram:
+    image: janwh/alertmanager-telegram:latest
+    container_name: gap-alertmanager-telegram
+    env_file:
+      - .env
+    ports:
+      - "8081:8080"
+    networks:
+      - cms-shared-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gap-grafana
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - cms-shared-net
+
+networks:
+  cms-shared-net:
+    external: true
+
+volumes:
+  prometheus_data:
+  vmdata:
+  grafana_data:
