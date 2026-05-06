@@ -1,4 +1,6 @@
+# Private
 .env
+MY_DOC/
 
 # InfluxDB runtime data
 tick-1/influxdb/meta/
@@ -12,6 +14,10 @@ TICK-1/influxdb/wal/
 tick-1/kapacitor/kapacitor.db
 tick-1/kapacitor/replay/
 tick-1/kapacitor/tasks/
+
+# Kapacitor runtime IDs
+tick-1/kapacitor/server.id
+tick-1/kapacitor/cluster.id
 
 # Chronograf runtime data
 tick-1/chronograf/chronograf-v1.db
