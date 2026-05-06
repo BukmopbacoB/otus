@@ -8,6 +8,7 @@ services:
       - "8086:8086"
     volumes:
       - ./tick-1/influxdb:/var/lib/influxdb
+      - ./tick-1/influxdb/influxdb.conf:/etc/influxdb/influxdb.conf:ro
       - ./tick-1/influxdb/init:/docker-entrypoint-initdb.d:ro
     environment:
       INFLUXDB_DB: telegraf

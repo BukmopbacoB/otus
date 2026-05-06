@@ -1,1 +1,18 @@
 .env
+
+# InfluxDB runtime data
+tick-1/influxdb/meta/
+tick-1/influxdb/data/
+tick-1/influxdb/wal/
+TICK-1/influxdb/meta/
+TICK-1/influxdb/data/
+TICK-1/influxdb/wal/
+
+# Kapacitor runtime data
+tick-1/kapacitor/kapacitor.db
+tick-1/kapacitor/replay/
+tick-1/kapacitor/tasks/
+
+# Chronograf runtime data
+tick-1/chronograf/chronograf-v1.db
+tick-1/chronograf/backup/

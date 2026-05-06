@@ -1,48 +1,6 @@
+name: tick1
+
 services:
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: cms-nginx
-    ports:
-      - "8080:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./src:/var/www/html
-    depends_on:
-      - php
-    networks:
-      - cms-net
-
-  php:
-    build:
-      context: ./php
-    container_name: cms-php
-    volumes:
-      - ./src:/var/www/html
-    depends_on:
-      - db
-    networks:
-      - cms-net
-
-  db:
-    image: postgres:16
-    container_name: cms-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    command: >
-      postgres
-      -c hba_file=/etc/postgresql/pg_hba.conf
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-      - ./postgres/init:/docker-entrypoint-initdb.d:ro
-    networks:
-      - cms-net
-
-  #################################################
-  # TICK-1 stack
-  #################################################
   influxdb:
     image: influxdb:1.8
     container_name: tick-influxdb
@@ -50,11 +8,12 @@ services:
       - "8086:8086"
     volumes:
       - ./tick-1/influxdb:/var/lib/influxdb
+      - ./tick-1/influxdb/influxdb.conf:/etc/influxdb/influxdb.conf:ro
       - ./tick-1/influxdb/init:/docker-entrypoint-initdb.d:ro
     environment:
       INFLUXDB_DB: telegraf
     networks:
-      - cms-net
+      - cms-shared-net
 
   chronograf:
     image: chronograf:1.10
@@ -72,7 +31,7 @@ services:
       - ./tick-1/chronograf:/var/lib/chronograf
       - ./tick-1/chronograf/resources:/var/lib/chronograf/resources
     networks:
-      - cms-net
+      - cms-shared-net
 
   kapacitor:
     image: kapacitor:1.6
@@ -91,17 +50,12 @@ services:
       - ./tick-1/kapacitor/kapacitor.conf:/etc/kapacitor/kapacitor.conf:ro
       - ./tick-1/kapacitor/tasks:/etc/kapacitor/load:ro
     networks:
-      - cms-net
+      - cms-shared-net
 
   telegraf:
     image: telegraf:1.30
     container_name: tick-telegraf
     user: root
-    depends_on:
-      - influxdb
-      - nginx
-      - php
-      - db
     environment:
       HOST_PROC: /host/proc
       HOST_SYS: /host/sys
@@ -113,10 +67,8 @@ services:
       - /sys:/host/sys:ro
       - /:/hostfs:ro
     networks:
-      - cms-net
+      - cms-shared-net
 
 networks:
-  cms-net:
-
-volumes:
-  pgdata:
+  cms-shared-net:
+    external: true
