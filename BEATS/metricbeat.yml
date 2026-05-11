@@ -1,0 +1,52 @@
+setup.ilm.enabled: true
+setup.kibana:
+  host: "${KIBANA_HOST:http://kibana:5601}"
+
+metricbeat.modules:
+  - module: system
+    period: 10s
+    metricsets:
+      - cpu
+      - load
+      - memory
+      - network
+      - process
+      - process_summary
+      - filesystem
+      - fsstat
+      - uptime
+    processes: ['.*']
+    process.include_top_n:
+      by_cpu: 5
+      by_memory: 5
+
+  - module: nginx
+    metricsets: ["stubstatus"]
+    enabled: true
+    period: 10s
+    hosts: ["http://nginx"]
+    server_status_path: "nginx_status"
+
+  - module: postgresql
+    enabled: true
+    period: 10s
+    hosts: ["postgres://db:5432/postgres?sslmode=disable"]
+    username: "${POSTGRES_USER_BEAT}"
+    password: "${POSTGRES_PASSWORD_BEAT}"
+    metricsets: ["activity", "bgwriter", "database"]
+
+  - module: php_fpm
+    metricsets: ["pool"]
+    enabled: true
+    period: 10s
+    status_path: "/fpm-status"
+    hosts: ["http://nginx"]
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata: ~
+
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOSTS:http://elasticsearch:9200}"]
+  username: "${ELASTIC_USERNAME:elastic}"
+  password: "${ELASTIC_PASSWORD}"

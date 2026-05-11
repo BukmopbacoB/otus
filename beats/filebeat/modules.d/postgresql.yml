@@ -1,0 +1,4 @@
+- module: postgresql
+  log:
+    enabled: true
+    var.paths: ["/logs/postgresql/*.csv", "/logs/postgresql/*.log"]

@@ -1,0 +1,93 @@
+setup.ilm.enabled: false
+setup.template.enabled: true
+setup.template.name: "beats-logs"
+setup.template.pattern: "logs-*"
+# setup.kibana:
+#   host: "${KIBANA_HOST:http://kibana:5601}"
+
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+filebeat.inputs:
+  - type: log
+    # id: php-fpm-log
+    enabled: true
+    paths:
+      - /logs/php-fpm/*.log
+    # ignore_older: 0
+    fields:
+      service_name: php-fpm
+      log_type: php-fpm
+    fields_under_root: true
+    # parsers:
+    #   - multiline:
+    #       type: pattern
+    #       pattern: '^\[[0-9]{2}-[A-Za-z]{3}-[0-9]{4}'
+    #       negate: true
+    #       match: after
+
+  - type: log
+    # id: nginx-access-dissect
+    enabled: true
+    paths:
+      - /logs/nginx/access.log
+    ignore_older: 0
+    fields:
+      service_name: nginx
+      log_type: nginx_access
+    fields_under_root: true
+    processors:
+      - dissect:
+          tokenizer: '%{remote_addr} - %{remote_user} [%{time_local}] "%{request}" %{status} %{body_bytes_sent} "%{http_referer}" "%{http_user_agent}"'
+          field: message
+          target_prefix: nginx.access
+      # - script:
+      #     lang: javascript
+      #     id: split_request
+      #     source: >
+      #       function process(event) {
+      #         var req = event.Get("nginx.access.request");
+      #         if (!req) return;
+      #         var parts = req.split(" ");
+      #         if (parts.length >= 3) {
+      #           event.Put("http.request.method", parts[0]);
+      #           event.Put("url.original", parts[1]);
+      #           event.Put("http.version", parts[2]);
+      #         }
+      #       }
+      # - convert:
+      #     fields:
+      #       - {from: "status", to: "http.response.status_code", type: "long", ignore_missing: true}
+      #       - {from: "body_bytes_sent", to: "http.response.body.bytes", type: "long", ignore_missing: true}
+      #     fail_on_error: false
+      #     ignore_missing: true
+      # - rename:
+      #     fields:
+      #       - from: remote_addr
+      #         to: source.address
+      #       - from: http_referer
+      #         to: http.request.referrer
+      #       - from: http_user_agent
+      #         to: user_agent.original
+      #     ignore_missing: true
+      #     fail_on_error: false
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata: ~
+
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOSTS:http://elasticsearch:9200}"]
+  username: "${ELASTIC_USERNAME:elastic}"
+  password: "${ELASTIC_PASSWORD}"
+  indices:
+    - index: "logs-nginx-%{+yyyy.MM.dd}"
+      when.equals:
+        log_type: nginx_access
+    - index: "logs-phpfpm-%{+yyyy.MM.dd}"
+      when.equals:
+        log_type: php-fpm
+    - index: "logs-postgresql-%{+yyyy.MM.dd}"
+      when.equals:
+        event.module: postgresql

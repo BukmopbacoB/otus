@@ -1,0 +1,24 @@
+setup.ilm.enabled: true
+setup.kibana:
+  host: "${KIBANA_HOST:http://kibana:5601}"
+
+heartbeat.monitors:
+  - type: http
+    id: cms-http
+    name: CMS HTTP
+    # hosts: ["${CMS_URL:http://CMS_VM_IP:8080}"]
+    hosts: ["http://nginx:80"]
+    schedule: '@every 10s'
+    check.response.status: [200]
+
+  - type: tcp
+    id: cms-postgres
+    name: CMS PostgreSQL TCP
+    # hosts: ["${CMS_DB_HOST:CMS_VM_IP:5432}"]
+    hosts: ["db:5432"]
+    schedule: '@every 10s'
+
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOSTS:http://elasticsearch:9200}"]
+  username: "${ELASTIC_USERNAME:elastic}"
+  password: "${ELASTIC_PASSWORD}"

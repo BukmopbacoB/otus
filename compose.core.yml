@@ -9,6 +9,7 @@ services:
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./src:/var/www/html
+      - ./logs/nginx:/var/log/nginx
     depends_on:
       - php
     networks:
@@ -24,6 +25,7 @@ services:
     volumes:
       - ./src:/var/www/html
       - ./php/conf.d/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+      - ./logs/php-fpm:/var/log/php-fpm
     depends_on:
       - db
     networks:
@@ -42,10 +44,14 @@ services:
     command: >
       postgres
       -c hba_file=/etc/postgresql/pg_hba.conf
+      -c config_file=/etc/postgresql/postgresql.beats.conf
+    
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgres/postgresql.beats.conf:/etc/postgresql/postgresql.beats.conf:ro
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./logs/postgresql:/var/log/postgresql
     networks:
       cms-shared-net:
         aliases:
