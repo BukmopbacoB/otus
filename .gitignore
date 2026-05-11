@@ -22,3 +22,5 @@ tick-1/kapacitor/cluster.id
 # Chronograf runtime data
 tick-1/chronograf/chronograf-v1.db
 tick-1/chronograf/backup/
+
+logs
