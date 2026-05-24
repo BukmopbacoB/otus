@@ -1,0 +1,42 @@
+filebeat.inputs:
+  - type: filestream
+    id: nginx-logs
+    enabled: true
+    paths:
+      - /logs/nginx/*.log
+    fields:
+      service_name: nginx
+      log_type: nginx
+    fields_under_root: true
+
+  - type: filestream
+    id: php-fpm-logs
+    enabled: true
+    paths:
+      - /logs/php-fpm/*.log
+    fields:
+      service_name: php-fpm
+      log_type: php_fpm
+    fields_under_root: true
+
+  - type: filestream
+    id: postgresql-logs
+    enabled: true
+    paths:
+      - /logs/postgresql/*.log
+    fields:
+      service_name: postgresql
+      log_type: postgresql
+    fields_under_root: true
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata: ~
+
+setup.kibana:
+  host: ${KIBANA_HOST}
+
+output.elasticsearch:
+  hosts: ["${ELASTIC_HOSTS}"]
+  username: ${ELASTIC_USERNAME}
+  password: ${ELASTIC_PASSWORD}

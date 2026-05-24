@@ -1,0 +1,56 @@
+name: beats-direct
+
+services:
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.19.4
+    user: root
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    environment:
+      ELASTIC_HOSTS: http://elasticsearch:9200
+      ELASTIC_USERNAME: elastic
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      KIBANA_HOST: http://kibana:5601
+    volumes:
+      - ./beats/filebeat/filebeat.to-elasticsearch.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./beats/filebeat/modules.d:/usr/share/filebeat/modules.d:ro
+      - ./logs/nginx:/logs/nginx:ro
+      - ./logs/php-fpm:/logs/php-fpm:ro
+      - ./logs/postgresql:/logs/postgresql:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat_data:/usr/share/filebeat/data
+    restart: unless-stopped
+    networks:
+      - cms-shared-net
+
+  metricbeat:
+    image: docker.elastic.co/beats/metricbeat:8.19.4
+    user: root
+    command: ["metricbeat", "-e", "--strict.perms=false"]
+    environment:
+      HOST_PROC: /hostfs/proc
+      HOST_SYS: /hostfs/sys
+      HOST_ETC: /hostfs/etc
+      POSTGRES_USER_BEAT: ${POSTGRES_USER_BEAT}
+      POSTGRES_PASSWORD_BEAT: ${POSTGRES_PASSWORD_BEAT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      ELASTIC_HOSTS: http://elasticsearch:9200
+      ELASTIC_USERNAME: elastic
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      KIBANA_HOST: http://kibana:5601
+    volumes:
+      - ./beats/metricbeat/metricbeat.yml:/usr/share/metricbeat/metricbeat.yml:ro
+      - ./beats/metricbeat/modules.d:/usr/share/metricbeat/modules.d:ro
+      - /proc:/hostfs/proc:ro
+      - /sys:/hostfs/sys:ro
+      - /:/hostfs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - cms-shared-net
+
+networks:
+  cms-shared-net:
+    external: true
+
+volumes:
+  filebeat_data:

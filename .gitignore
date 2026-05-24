@@ -24,3 +24,7 @@ tick-1/chronograf/chronograf-v1.db
 tick-1/chronograf/backup/
 
 logs
+logs/*
+!logs/.gitkeep
+screenshots/*
+!screenshots/.gitkeep

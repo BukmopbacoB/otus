@@ -1,0 +1,105 @@
+data_dir: /var/lib/vector
+
+sources:
+  nginx_logs:
+    type: file
+    include:
+      - /logs/nginx/*.log
+    read_from: beginning
+
+  php_fpm_logs:
+    type: file
+    include:
+      - /logs/php-fpm/*.log
+    read_from: beginning
+
+  postgresql_logs:
+    type: file
+    include:
+      - /logs/postgresql/*.log
+    read_from: beginning
+
+transforms:
+  parse_nginx:
+    type: remap
+    inputs: ["nginx_logs"]
+    source: |
+      .service_name = "nginx"
+      .log_type = "nginx"
+      parsed, err = parse_regex(.message, r'^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<method>\S+) (?P<request>[^"]+) HTTP/(?P<http_version>[0-9.]+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"')
+      if err == null {
+        .nginx = parsed
+        .nginx.status = to_int!(.nginx.status)
+        .nginx.body_bytes_sent = to_int!(.nginx.body_bytes_sent)
+        .event = {"dataset": "nginx.access"}
+      } else {
+        .tags = ["_vrl_parse_failure_nginx"]
+      }
+
+  parse_php_fpm:
+    type: remap
+    inputs: ["php_fpm_logs"]
+    source: |
+      .service_name = "php-fpm"
+      .log_type = "php_fpm"
+
+      # пример: 172.18.0.4 -  18/May/2026:14:11:45 +0000 "GET /index.php" 200 15.454 2048 64.71%
+      parsed, err = parse_regex(
+        .message,
+        r'^(?P<remote_addr>\S+) -  (?P<time_local>\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4}) "(?P<method>\S+) (?P<request>\S+)" (?P<status>\d{3}) (?P<request_time>[\d.]+) (?P<memory>\d+) (?P<cpu>[\d.]+)%$'
+      )
+
+      if err == null {
+        .php_fpm = parsed
+        .php_fpm.status = to_int!(.php_fpm.status)
+        .php_fpm.request_time = to_float!(.php_fpm.request_time)
+        .php_fpm.memory = to_int!(.php_fpm.memory)
+        .php_fpm.cpu = to_float!(.php_fpm.cpu)
+        .event = {"dataset": "php-fpm.access"}
+      } else {
+        .tags = ["_vrl_parse_failure_php_fpm"]
+      }
+
+
+  # parse_php_fpm:
+  #   type: remap
+  #   inputs: ["php_fpm_logs"]
+  #   source: |
+  #     .service_name = "php-fpm"
+  #     .log_type = "php_fpm"
+  #     parsed, err = parse_regex(.message, r'^\[(?P<timestamp>[^\]]+)\] (?P<level>\w+): (?P<msg>.*)$')
+  #     if err == null {
+  #       .php_fpm = parsed
+  #       .event = {"dataset": "php-fpm.log"}
+  #     } else {
+  #       .tags = ["_vrl_parse_failure_php_fpm"]
+  #     }
+
+  parse_postgresql:
+    type: remap
+    inputs: ["postgresql_logs"]
+    source: |
+      .service_name = "postgresql"
+      .log_type = "postgresql"
+      parsed, err = parse_regex(.message, r'^(?P<log_time>\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}(?::?\d{2})?)?) \[(?P<pid>\d+)\] (?P<level>\w+): (?P<msg>.*)$')
+      if err == null {
+        .postgresql = parsed
+        .postgresql.pid = to_int!(.postgresql.pid)
+        .event = {"dataset": "postgresql.log"}
+      } else {
+        .tags = ["_vrl_parse_failure_postgresql"]
+      }
+
+sinks:
+  elasticsearch_logs:
+    type: elasticsearch
+    inputs: ["parse_nginx", "parse_php_fpm", "parse_postgresql"]
+    endpoints: ["http://elasticsearch:9200"]
+    mode: bulk
+    api_version: v8
+    bulk:
+      index: "vector-logs-%Y.%m.%d"
+    auth:
+      strategy: basic
+      user: elastic
+      password: "${ELASTIC_PASSWORD}"

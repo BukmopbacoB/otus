@@ -1,0 +1,7 @@
+http.host: "0.0.0.0"
+xpack.monitoring.enabled: false
+path.data: /usr/share/logstash/data
+path.dead_letter_queue: /usr/share/logstash/data/dead_letter_queue
+dead_letter_queue.enable: true
+pipeline.workers: 2
+pipeline.batch.size: 125
