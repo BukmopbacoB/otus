@@ -1,0 +1,55 @@
+name: loki-logging
+
+services:
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    user: root
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/tmp/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - cms-shared-net
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - cms-shared-net
+
+  fluent-bit:
+    image: fluent/fluent-bit:3.0
+    container_name: loki-fluent-bit
+    user: root
+    volumes:
+      - ./fluent-bit/fluent-bit.loki.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - /home/ubukmop/otus/Observability26/otus/logs/nginx:/logs/nginx:ro
+      - /home/ubukmop/otus/Observability26/otus/logs/php-fpm:/logs/php-fpm:ro
+      - /home/ubukmop/otus/Observability26/otus/logs/postgresql:/logs/postgresql:ro
+    depends_on:
+      - loki
+    restart: unless-stopped
+    networks:
+      - cms-shared-net
+
+networks:
+  cms-shared-net:
+    external: true
+
+volumes:
+  loki-data:
+  grafana-data:
