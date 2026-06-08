@@ -1,0 +1,38 @@
+fields_under_root: true
+fields.collector_node_id: ${sidecar.nodeName}
+fields.gl2_source_collector: ${sidecar.nodeId}
+
+output.logstash:
+  hosts: ["GRAYLOG_VM2_IP:5044"]
+
+filebeat.inputs:
+  - type: filestream
+    id: php-fpm-error
+    enabled: true
+    paths:
+      - /opt/otus/logs/php-fpm/error.log
+    fields:
+      service_type: php-fpm
+      log_source: php_fpm_error
+
+  - type: filestream
+    id: php-fpm-access
+    enabled: true
+    paths:
+      - /opt/otus/logs/php-fpm/www.access.log
+    fields:
+      service_type: php-fpm
+      log_source: php_fpm_access
+
+  - type: filestream
+    id: php-fpm-slow
+    enabled: true
+    paths:
+      - /opt/otus/logs/php-fpm/www.slow.log
+    fields:
+      service_type: php-fpm
+      log_source: php_fpm_slow
+
+path:
+  data: /var/lib/graylog-sidecar/collectors/filebeat/data
+  logs: /var/lib/graylog-sidecar/collectors/filebeat/log

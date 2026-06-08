@@ -1,0 +1,20 @@
+fields_under_root: true
+fields.collector_node_id: ${sidecar.nodeName}
+fields.gl2_source_collector: ${sidecar.nodeId}
+
+output.logstash:
+  hosts: ["GRAYLOG_VM2_IP:5044"]
+
+filebeat.inputs:
+  - type: filestream
+    id: postgresql-csv
+    enabled: true
+    paths:
+      - /opt/otus/logs/postgresql/*.csv
+    fields:
+      service_type: postgresql
+      log_source: postgresql_csv
+
+path:
+  data: /var/lib/graylog-sidecar/collectors/filebeat/data
+  logs: /var/lib/graylog-sidecar/collectors/filebeat/log

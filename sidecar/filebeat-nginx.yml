@@ -1,0 +1,29 @@
+fields_under_root: true
+fields.collector_node_id: ${sidecar.nodeName}
+fields.gl2_source_collector: ${sidecar.nodeId}
+
+output.logstash:
+  hosts: ["GRAYLOG_VM2_IP:5044"]
+
+filebeat.inputs:
+  - type: filestream
+    id: nginx-access
+    enabled: true
+    paths:
+      - /opt/otus/logs/nginx/access.log
+    fields:
+      service_type: nginx
+      log_source: nginx_access
+
+  - type: filestream
+    id: nginx-error
+    enabled: true
+    paths:
+      - /opt/otus/logs/nginx/error.log
+    fields:
+      service_type: nginx
+      log_source: nginx_error
+
+path:
+  data: /var/lib/graylog-sidecar/collectors/filebeat/data
+  logs: /var/lib/graylog-sidecar/collectors/filebeat/log

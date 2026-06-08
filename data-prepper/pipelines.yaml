@@ -1,22 +1,23 @@
-log-pipeline:
+graylog-demo-pipeline:
   source:
     http:
-      path: "/log/ingest"
-      port: 2021
-      max_request_length: "100mb"
+      path: "/logs"
+      # port: 2021
+      # max_request_length: "100mb"
   processor:
-    - grok:
-        match:
-          log: [ "%{COMBINEDAPACHELOG}" ]
-    - date:
-        from_time_received: true
-        destination: "@timestamp"
-    - delete_entries:
-        with_keys: ["message"]
+    - parse_json: {}
+    # - grok:
+    #     match:
+    #       log: [ "%{COMBINEDAPACHELOG}" ]
+    # - date:
+    #     from_time_received: true
+    #     destination: "@timestamp"
+    # - delete_entries:
+    #     with_keys: ["message"]
   sink:
     - opensearch:
-        hosts: [ "https://opensearch:9200" ]
-        username: "admin"
-        password: "Opensearch_2026_Strong!"
-        index: "logs-%{yyyy.MM.dd}"
-        insecure: true
+        hosts: ["http://opensearch:9200"]
+        # username: "admin"
+        # password: "Opensearch_2026_Strong!"
+        index: "dataprepper-demo-%{yyyy.MM.dd}"
+        # insecure: true

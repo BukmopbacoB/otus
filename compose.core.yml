@@ -4,6 +4,7 @@ services:
   nginx:
     image: nginx:1.25-alpine
     container_name: cms-nginx
+    restart: unless-stopped
     ports:
       - "8080:80"
     volumes:
@@ -22,6 +23,7 @@ services:
     build:
       context: ./php
     container_name: cms-php
+    restart: unless-stopped
     volumes:
       - ./src:/var/www/html
       - ./php/conf.d/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
@@ -37,6 +39,7 @@ services:
   db:
     image: postgres:16
     container_name: cms-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -44,12 +47,11 @@ services:
     command: >
       postgres
       -c hba_file=/etc/postgresql/pg_hba.conf
-      -c config_file=/etc/postgresql/postgresql.beats.conf
-    
+      -c config_file=/etc/postgresql/postgresql.graylog.conf
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-      - ./postgres/postgresql.beats.conf:/etc/postgresql/postgresql.beats.conf:ro
+      - ./postgres/postgresql.graylog.conf:/etc/postgresql/postgresql.graylog.conf:ro
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
       - ./logs/postgresql:/var/log/postgresql
     networks:
