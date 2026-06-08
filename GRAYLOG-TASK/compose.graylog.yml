@@ -1,0 +1,84 @@
+name: graylog
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: graylog-mongodb
+    restart: unless-stopped
+    volumes:
+      - graylog-mongodb-data:/data/db
+    networks:
+      - graylog-net
+
+  opensearch:
+    image: opensearchproject/opensearch:2.14.0
+    container_name: graylog-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - plugins.security.disabled=true
+      - action.auto_create_index=false
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=Opensearch_2026_Strong!
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - graylog-opensearch-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    networks:
+      - graylog-net
+
+  graylog:
+    image: graylog/graylog:6.0
+    container_name: graylog-server
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+      - opensearch
+    environment:
+      GRAYLOG_PASSWORD_SECRET: "d47eb52b28933939131e29c38dfb013d"
+      GRAYLOG_ROOT_PASSWORD_SHA2: "04445e6487736590d1ef50186b414e737e0164683cbbec64e00e73c000fd3bef"
+      GRAYLOG_HTTP_BIND_ADDRESS: "0.0.0.0:9000"
+      GRAYLOG_HTTP_EXTERNAL_URI: "http://GRAYLOG_VM2_IP:9000/"
+      GRAYLOG_MONGODB_URI: "mongodb://mongodb:27017/graylog"
+      GRAYLOG_ELASTICSEARCH_HOSTS: "http://opensearch:9200"
+    ports:
+      - "9000:9000"
+      - "5044:5044"
+      - "12201:12201/udp"
+    volumes:
+      - graylog-data:/usr/share/graylog/data
+      - ./graylog/server.conf:/usr/share/graylog/data/config/server.conf:ro
+    networks:
+      - graylog-net
+
+  data-prepper:
+    image: opensearchproject/data-prepper:2.7.0
+    container_name: graylog-data-prepper
+    restart: unless-stopped
+    depends_on:
+      - opensearch
+    volumes:
+      - ./data-prepper/pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
+      - ./data-prepper/data-prepper-config.yaml:/usr/share/data-prepper/config/data-prepper-config.yaml:ro
+    ports:
+      - "2021:2021"
+    networks:
+      - graylog-net
+
+networks:
+  graylog-net:
+    name: graylog-net
+
+volumes:
+  graylog-mongodb-data:
+  graylog-opensearch-data:
+  graylog-data:

@@ -1,0 +1,21 @@
+server_url: "http://GRAYLOG_VM2_IP:9000/api/"
+server_api_token: "GRAYLOG_SIDECAR_TOKEN"
+node_id: "file:/etc/graylog/sidecar/node-id"
+node_name: "cms-vm1"
+update_interval: 10
+tls_skip_verify: true
+
+send_status: true
+list_log_files:
+  - /opt/otus/logs/nginx
+  - /opt/otus/logs/php-fpm
+  - /opt/otus/logs/postgresql
+
+cache_path: "/var/cache/graylog-sidecar"
+collector_configuration_directory: "/var/lib/graylog-sidecar/generated"
+log_path: "/var/log/graylog-sidecar"
+
+tags:
+  - nginx
+  - php-fpm
+  - postgresql
